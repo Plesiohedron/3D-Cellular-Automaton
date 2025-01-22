@@ -1,6 +1,9 @@
 #include "Camera.h"
 
-Camera::Camera(const glm::vec3& pos, float FOV) : position(pos), FOV(FOV), rotation(1.0f) {
+const float Camera::near = 0.01f;
+const float Camera::far = 512.0f;
+
+Camera::Camera(const glm::vec3& pos, float FOV) : position(pos), FOV(FOV) {
     UpdateVectors();
 }
 
@@ -19,7 +22,7 @@ void Camera::Rotate(float x, float y, float z) {
 }
 
 glm::mat4 Camera::GetProjection() const {
-    return glm::perspective(FOV, Events::window->GetAspect(), 0.01f, 500.0f);
+    return glm::perspective(FOV, Events::window->GetAspect(), near, far);
 }
 
 glm::mat4 Camera::GetView() const {

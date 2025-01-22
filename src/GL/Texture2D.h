@@ -12,10 +12,10 @@ namespace GL {
         GLuint handle_;
 
     public:
-        GLenum GL_format;
+        GLenum GL_format = GL_ZERO;
 
-        int width;
-        int height;
+        int width = 0;
+        int height = 0;
 
     public:
         Texture2D();

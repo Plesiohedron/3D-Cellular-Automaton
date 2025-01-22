@@ -15,7 +15,7 @@ public:
 private:
     Window window_;
     Camera camera_;
-    Chunks* chunks_;
+    Chunks* chunks_ = nullptr;
 
 private:
     Engine(const Engine&) = delete;

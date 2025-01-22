@@ -1,20 +1,16 @@
 #include "Engine.h"
 
-#include <iostream>
-
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include <stb_image_write.h>
-
 Engine::Engine(int window_width, int window_height, const char* window_title)
-    : window_{window_width, window_height, window_title}, camera_{{0.0f, 12.0f, 12.0f}, glm::radians(90.0f)} {
+    : window_{window_width, window_height, window_title}, camera_{{0.0f, 12.0f, -120.0f}, glm::radians(90.0f)} {
     // In the beginning the camera directed to -Z, so we rotate it
     camera_.Rotate(0.0f, glm::radians(180.0f), 0.0f);
     camera_.camera_rotation_X = glm::radians(180.0f);
     // Creation of chunks
-    chunks_ = new Chunks({10, 10, 10});
+    chunks_ = new Chunks({10, 10, 10}, camera_.FOV);
     // Some necessary magic
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
+    //glEnable(GL_MULTISAMPLE);
     glClearColor(0.f, 0.f, 0.f, 1.0f);
     glfwSwapInterval(0);  // Off vertical synchronization
 }
@@ -26,7 +22,13 @@ void Engine::MainLoop() {
     double total_time = 0.0;
     int frame_count = 0;
     // Speed of movement through the universe
-    float speed = 15.0f;
+    const float speed = 15.0f;
+
+    glm::vec3 previous_chunk_position, current_chunk_position;
+    previous_chunk_position.x = floor(camera_.position.x / Chunk::DIRECTION_SIZE);
+    previous_chunk_position.y = floor(camera_.position.y / Chunk::DIRECTION_SIZE);
+    previous_chunk_position.z = floor(camera_.position.z / Chunk::DIRECTION_SIZE);
+    chunks_->BaseSideCulling(previous_chunk_position);
 
     while (!window_.IsShouldClose()) {
         // For profiling
@@ -34,9 +36,7 @@ void Engine::MainLoop() {
         delta_time = current_time - last_time;
         last_time = current_time;
 
-        // std::cout << 1 / delta_time << '\n';
-
-        if (!window_.is_iconfied) {
+        if (!window_.is_iconified) {
             // Event handling
             if (Events::KeyIsClicked(GLFW_KEY_ESCAPE)) {
                 window_.SetShouldClose(true);
@@ -68,7 +68,7 @@ void Engine::MainLoop() {
                 window_.is_resized = false;
             }
             // Rotate camera if cursor is locked (on TAB)
-            if (Events::cursor_is_locked) {
+            if (Events::cursor_is_locked && Events::cursor_is_moving) {
                 camera_.camera_rotation_X += -2 * Events::cursor_delta_x / window_.height;
                 camera_.camera_rotation_Y += -2 * Events::cursor_delta_y / window_.height;
 
@@ -80,6 +80,8 @@ void Engine::MainLoop() {
 
                 camera_.rotation = glm::mat4(1.0f);
                 camera_.Rotate(camera_.camera_rotation_Y, camera_.camera_rotation_X, 0.0f);
+
+                chunks_->FrustumRotate(camera_);
             }
             // For debug rendering
             if (Events::KeyIsClicked(GLFW_KEY_E)) {
@@ -92,6 +94,24 @@ void Engine::MainLoop() {
             }
 
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            // Check and pull updates
+            if (chunks_->is_data_modified) {
+                chunks_->UpdateVertexData();
+                chunks_->actual_total_VBO_size = chunks_->total_VBO_size;
+                chunks_->is_data_modified = false;
+            }
+
+            current_chunk_position.x = floor(camera_.position.x / Chunk::DIRECTION_SIZE);
+            current_chunk_position.y = floor(camera_.position.y / Chunk::DIRECTION_SIZE);
+            current_chunk_position.z = floor(camera_.position.z / Chunk::DIRECTION_SIZE);
+
+            if (previous_chunk_position != current_chunk_position) {
+                chunks_->SideCulling(previous_chunk_position, current_chunk_position);
+                previous_chunk_position = current_chunk_position;
+            }
+            chunks_->FrustumCulling(camera_.position / Chunk::DIRECTION_SIZE);
+
             // Draw everything
             chunks_->Draw(camera_);
         }
@@ -103,7 +123,7 @@ void Engine::MainLoop() {
         total_time += delta_time;
         ++frame_count;
         if (total_time > 1.0) {
-            std::cout << frame_count / total_time << '\n';
+            //printf("%.2lf\n", frame_count / total_time);
             frame_count = 0;
             total_time = 0;
         }

@@ -17,10 +17,10 @@ public:
     int width;
     int height;
 
-    bool is_iconfied{false};
+    bool is_iconified{false};
     bool is_resized{false};
 
-    GLFWwindow* window;
+    GLFWwindow* window = nullptr;
 
 private:
     Window(int window_width, int window_height, const char* window_title);

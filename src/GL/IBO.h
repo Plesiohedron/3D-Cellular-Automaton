@@ -24,6 +24,7 @@ namespace GL {
             void Bind() const;
             void Unbind() const;
 
-            void Assign(const IndirectCommand* commands, size_t commands_size);
+            void Assign(const IndirectCommand* commands, size_t commands_size, GLenum draw_type);
+            void SubAssign(const IndirectCommand* commands, size_t commands_size, size_t offset);
     };
 }  // namespace GL

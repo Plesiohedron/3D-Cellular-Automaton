@@ -2,17 +2,30 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+#include <stdio.h>
 
-#include <iostream>
-#include <memory>
+#ifdef _WIN32
+#define PATH_MAX _MAX_PATH
+#endif
 
-Image::Image(int width, int height, const std::vector<char>& data, Format format)
+#ifdef __unix__
+#include <limits.h>
+#endif 
+
+Image::Image(int width, int height, unsigned char* data, Format format)
     : width(width), height(height), data(data), format(format) { }
 
-Image Image::LoadImage(const std::string& path) {
+Image::~Image() {
+    delete[] data;
+}
+
+Image Image::LoadImage(const char* filename) {
+    char full_path[PATH_MAX];  
+    snprintf(full_path, sizeof(full_path), "%s%s", "./res/textures/", filename);
+
     int x, y, channels;
-    // Load image with filename
-    std::unique_ptr<stbi_uc> data = std::unique_ptr<stbi_uc>(stbi_load(("res/textures/" + path).c_str(), &x, &y, &channels, 0));
+    // Load raw image data with filename
+    stbi_uc* data = stbi_load(full_path, &x, &y, &channels, 0);
 
     Format format;
     switch (channels) {
@@ -25,10 +38,11 @@ Image Image::LoadImage(const std::string& path) {
             break;
 
         default:
-            std::cout << "Incorrect number of channels (" + std::to_string(channels) + ") in file: " + path << std::endl;
-            std::exit(EXIT_FAILURE);
+            fprintf(stderr, "%s\n", full_path);
+            fprintf(stderr, "Wrong image format.\n");
+            return Image(0, 0, data, ERR);
     }
 
     int size = x * y * channels;
-    return Image(x, y, std::vector<char>{data.get(), data.get() + size}, format);
+    return Image(x, y, data, format);
 }

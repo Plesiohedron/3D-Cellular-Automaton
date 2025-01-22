@@ -1,90 +1,35 @@
 #version 460 core
-// I hope your GPU supports at least one of the extensions below
-#extension GL_NV_gpu_shader5 : enable
-#extension EXT_shader_16bit_storage : enable
-#extension GL_AMD_gpu_shader_int16 : enable
-#extension GL_EXT_shader_explicit_arithmetic_types : enable
-#extension GL_KHR_shader_subgroup_extended_types : enable
 
-layout (location = 0) in uint16_t position;
+#define VERTEX_COUNT_PER_FACE 4
+#define FACE_COUNT_PER_CUBE 6
 
-layout (std430, binding = 0) buffer Offsets {
+layout(location = 0) in uint position;
+
+layout(std430, binding = 0) readonly restrict buffer Chunks {
     vec4 models[];
 };
 
-uniform mat4 projview;
+layout(std140, binding = 0) uniform Vertices {
+    vec4 offsets[VERTEX_COUNT_PER_FACE * FACE_COUNT_PER_CUBE];
+};
 
-out vec2 frag_UV;
+layout(location = 0) uniform mat4 projview;
+
+layout(location = 0) out vec2 frag_UV;
+layout(location = 1) out vec3 frag_color;
 
 void main() {
 	// Unpack data
-	uint direction = (position >> 12u);
-	uint x = (position >> 8u) & 15u;
-	uint y = (position >> 4u) & 15u;
-	uint z = (position & 15u);
+	uint direction = gl_DrawID % 6;
+	uint x = (position >> 8);
+	uint y = (position >> 4) & 15;
+	uint z = (position & 15);
 	// Setting UV coordinates for texture
-	if (gl_VertexID == 0) {
-		frag_UV = vec2(1, 0);
-	} else if (gl_VertexID == 2) {
-		frag_UV = vec2(1, 1);
-	} else if (gl_VertexID == 3) {
-		frag_UV = vec2(0, 1);
-	} else {
-		frag_UV = vec2(0, 0);
-	}
-	// Transformation unpacked data into real vertex's coordinates
-	if (direction == 0) {
-		if (gl_VertexID == 0) {
-			++y;
-		} else if (gl_VertexID == 2) {
-			++y; ++z;
-		} else if (gl_VertexID == 3) {
-			++z;
-		}
-	} else if (direction == 1) {
-		++x;
-		if (gl_VertexID == 1) {
-			++y;
-		} else if (gl_VertexID == 2) {
-			++z;
-		} else if (gl_VertexID == 3) {
-			++y; ++z;
-		}
-	} else if (direction == 2) {
-		if (gl_VertexID == 0) {
-			++x;
-		} else if (gl_VertexID == 1) {
-			++x; ++z;
-		} else if (gl_VertexID == 3) {
-			++z;
-		}
-	} else if (direction == 3) {
-		++y;
-		if (gl_VertexID == 1) {
-			++z;
-		} else if (gl_VertexID == 2) {
-			++x;
-		} else if (gl_VertexID == 3) {
-			++x; ++z;
-		}
-	} else if (direction == 4) {
-		if (gl_VertexID == 0) {
-			++x; ++y;
-		} else if (gl_VertexID == 1) {
-			++x;
-		} else if (gl_VertexID == 2) {
-			++y;
-		}
-	} else {
-		++z;
-		if (gl_VertexID == 0) {
-			++y;
-		} else if (gl_VertexID == 2) {
-			++x; ++y;
-		} else if (gl_VertexID == 3) {
-			++x;
-		}
-	}
+	frag_UV = vec2((gl_VertexID >> 1) & 1, gl_VertexID & 1);
+	// Setting brithness of face
+	frag_color = vec3(1.0f - 0.1f * direction);
+	// Transformation of unpacked data into real vertex's coordinates
+	vec3 vertex = vec3(x, y, z) + offsets[(direction << 2) + gl_VertexID].xyz;
 	// Setting position of vertex with offset
-	gl_Position = projview * vec4(vec3(x, y, z) + models[gl_DrawID].xyz, 1);
+	gl_Position = projview * vec4(vertex + models[gl_DrawID / 6].xyz, 1.0f);
 }

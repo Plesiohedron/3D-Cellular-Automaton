@@ -17,10 +17,13 @@ public:
     glm::mat4 GetView() const;
 
 public:
+    static const float near;
+    static const float far;
+
     float FOV;
 
     glm::vec3 position;
-    glm::mat4 rotation;
+    glm::mat4 rotation = 1.0f;
 
     glm::vec3 vector_up;
     glm::vec3 vector_front;

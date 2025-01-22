@@ -5,13 +5,13 @@
 #include <GL/gl.h>
 
 namespace GL {
-    class SSBO {
+    class UBO {
     private:
-        GLuint SSBO_;
+        GLuint UBO_;
 
     public:
-        SSBO();
-        ~SSBO();
+        UBO();
+        ~UBO();
 
         void Bind() const;
         void Unbind() const;

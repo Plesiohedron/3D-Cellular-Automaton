@@ -1,18 +1,16 @@
 #pragma once
-#define GLEW_STATIC
 
+#define GLEW_STATIC
 #include <GL/glew.h>
 #include <GL/gl.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <string>
-
 namespace GL {
     class Program {
     public:
-        Program(const std::string& name);
+        Program(const char* filename);
         ~Program();
 
         void Link() const;
@@ -27,12 +25,11 @@ namespace GL {
 
     private:
         GLuint LoadShader(const char* path, const GLenum shader_type) const;
+        char* ReadCode(const char* path) const;
 
     private:
         GLuint program_;
         GLuint vertex_shader_;
         GLuint fragment_shader_;
-
-        static const int INFO_LOG_LENGTH_ = 512;
     };
 }  // namespace GL
